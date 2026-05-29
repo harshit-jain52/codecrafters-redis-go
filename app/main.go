@@ -16,22 +16,36 @@ func handleClient(conn net.Conn) {
 			fmt.Println("Error reading from connection:", err.Error())
 			return
 		}
-		fmt.Println("Received:", string(buf[:n]))
+		// fmt.Println("Received:", string(buf[:n]))
 
 		received_data, err := decodeRESPArray(string(buf[:n]))
 		if err != nil {
 			fmt.Println("Error decoding RESP array:", err.Error())
 			return
 		}
-		fmt.Println("Decoded data:", received_data)
+		// fmt.Println("Decoded data:", received_data)
 
 		if received_data[0] == "PING" {
-			_, err = conn.Write([]byte("+PONG\r\n"))
+			response := encodeSimpleString("PONG")
+			_, err = conn.Write([]byte(response))
 		} else if received_data[0] == "ECHO" && len(received_data) > 1 {
 			response := encodeBulkString(received_data[1])
 			_, err = conn.Write([]byte(response))
+		} else if received_data[0] == "SET" && len(received_data) > 2 {
+			setKeyValue(received_data[1], received_data[2])
+			response := encodeSimpleString("OK")
+			_, err = conn.Write([]byte(response))
+		} else if received_data[0] == "GET" && len(received_data) > 1 {
+			value, exists := getKeyValue(received_data[1])
+			if exists {
+				response := encodeBulkString(value)
+				_, err = conn.Write([]byte(response))
+			} else {
+				response := encodeBulkString("")
+				_, err = conn.Write([]byte(response))
+			}
 		}
-		
+
 		if err != nil {
 			fmt.Println("Error writing to connection:", err.Error())
 			return

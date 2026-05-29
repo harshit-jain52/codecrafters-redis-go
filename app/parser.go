@@ -46,5 +46,12 @@ func decodeRESPArray(input string) ([]string, error) {
 }
 
 func encodeBulkString(input string) string {
+	if input == "" {
+		return "$-1\r\n" // RESP null bulk string
+	}
 	return fmt.Sprintf("$%d\r\n%s\r\n", len(input), input)
+}
+
+func encodeSimpleString(input string) string {
+	return fmt.Sprintf("+%s\r\n", input)
 }
