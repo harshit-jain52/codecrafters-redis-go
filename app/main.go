@@ -16,10 +16,22 @@ func handleClient(conn net.Conn) {
 			fmt.Println("Error reading from connection:", err.Error())
 			return
 		}
-
 		fmt.Println("Received:", string(buf[:n]))
 
-		_, err = conn.Write([]byte("+PONG\r\n"))
+		received_data, err := decodeRESPArray(string(buf[:n]))
+		if err != nil {
+			fmt.Println("Error decoding RESP array:", err.Error())
+			return
+		}
+		fmt.Println("Decoded data:", received_data)
+
+		if received_data[0] == "PING" {
+			_, err = conn.Write([]byte("+PONG\r\n"))
+		} else if received_data[0] == "ECHO" && len(received_data) > 1 {
+			response := encodeBulkString(received_data[1])
+			_, err = conn.Write([]byte(response))
+		}
+		
 		if err != nil {
 			fmt.Println("Error writing to connection:", err.Error())
 			return
